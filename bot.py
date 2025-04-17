@@ -155,31 +155,34 @@ def auto_reply(channel_id, read_delay, reply_delay, use_google_ai, use_file_repl
             time.sleep(read_delay)
 
 if __name__ == "__main__":
-    use_reply = input("Ingin menggunakan fitur auto-reply? (y/n): ").lower() == 'y'
-    channel_id = input("Masukkan ID channel: ")
+    use_reply = os.getenv("USE_REPLY", "n").lower() == 'y'
+    channel_id = os.getenv("CHANNEL_ID", "")
+
+    if not channel_id:
+        log_message("❌ CHANNEL_ID tidak di-set. Exit.")
+        exit()
 
     if use_reply:
-        use_google_ai = input("Gunakan Google Gemini AI untuk balasan? (y/n): ").lower() == 'y'
-        use_file_reply = input("Gunakan pesan dari file pesan.txt? (y/n): ").lower() == 'y'
-        reply_mode_input = input("Ingin membalas pesan (reply/send/random): ").lower()
+        use_google_ai = os.getenv("USE_GOOGLE_AI", "y").lower() == 'y'
+        use_file_reply = os.getenv("USE_FILE_REPLY", "n").lower() == 'y'
+        reply_mode_input = os.getenv("REPLY_MODE", "reply").lower()
 
         if reply_mode_input not in ["reply", "send", "random"]:
             log_message("⚠️ Mode tidak valid, default ke 'reply'.")
             reply_mode_input = "reply"
 
-        language_choice = input("Pilih bahasa untuk balasan (id/en): ").lower()
+        language_choice = os.getenv("LANGUAGE", "id").lower()
         if language_choice not in ["id", "en"]:
-            log_message("⚠️ Bahasa tidak valid, default ke bahasa Indonesia.")
+            log_message("⚠️ Bahasa tidak valid, default ke 'id'.")
             language_choice = "id"
 
-        read_delay = int(input("Set Delay Membaca Pesan Terbaru (dalam detik): "))
-        reply_delay = int(input("Set Delay Balas Pesan (dalam detik): "))
+        read_delay = int(os.getenv("READ_DELAY", "10"))
+        reply_delay = int(os.getenv("REPLY_DELAY", "5"))
 
-        log_message(f"✅ Mode balasan aktif ({reply_mode_input}) dalam bahasa {'Indonesia' if language_choice == 'id' else 'Inggris'}...")
+        log_message(f"✅ Mode balasan aktif ({reply_mode_input}) dalam bahasa {language_choice.upper()}...")
         auto_reply(channel_id, read_delay, reply_delay, use_google_ai, use_file_reply, language_choice, reply_mode_input)
-
     else:
-        send_interval = int(input("Set Interval Pengiriman Pesan (dalam detik): "))
+        send_interval = int(os.getenv("SEND_INTERVAL", "60"))
         log_message("✅ Mode kirim pesan acak aktif...")
 
         while True:
