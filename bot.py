@@ -29,16 +29,16 @@ def generate_reply(prompt, use_google_ai=True, use_file_reply=False, language="i
         if language == "en":
             ai_prompt = (
                 f"{prompt}\n\n"
-                "Reply with casual tone, max 10–12 words. "
-                "Use natural, chill English without emojis or symbols."
+                "Reply casually, like texting a friend. "
+                "Use chill, simple English. Max 5–7 words. "
+                "Avoid emojis, weird symbols, or formal tone."
             )
         else:
             ai_prompt = (
                 f"{prompt}\n\n"
-                "Balas dengan gaya santai, kayak ngobrol biasa. "
-                "Maksimal 10-12 kata, bahasa gaul Jakarta. "
-                "Tanpa simbol, emoji, atau tanda baca aneh. "
-                "Jangan terlalu formal. Anggap kayak chat ke temen."
+                "Balas santai kayak ngobrol sama temen. "
+                "Pakai bahasa gaul, maksimal 5–7 kata. "
+                "Tanpa emoji, simbol aneh, atau bahasa kaku."
             )
 
         url = f'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key={google_api_key}'
