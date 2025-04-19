@@ -262,4 +262,16 @@ if __name__ == "__main__":
 
         read_delay = int(os.getenv("READ_DELAY", "10"))
         reply_delay_min = int(os.getenv("REPLY_DELAY_MIN", "5"))
+        reply_delay_max = int(os.getenv("REPLY_DELAY_MAX", "10"))
 
+        log_message(f"✅ Mode balasan aktif ({reply_mode_input}) dalam bahasa {language_choice.upper()}...")
+        auto_reply(channel_id, read_delay, reply_delay_min, reply_delay_max, use_google_ai, use_file_reply, language_choice, reply_mode_input)
+    else:
+        send_interval = int(os.getenv("SEND_INTERVAL", "60"))
+        log_message("✅ Mode kirim pesan acak aktif...")
+
+        while True:
+            message_text = get_random_message()
+            send_message(channel_id, message_text, reply_mode=False)
+            log_message(f"⏳ Waiting {send_interval} seconds before sending the next message...")
+            time.sleep(send_interval)
