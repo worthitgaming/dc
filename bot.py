@@ -117,7 +117,7 @@ def send_message(channel_id, message_text, reply_to=None, reply_mode=True):
     except requests.exceptions.RequestException as e:
         log_message(f"⚠️ Request error: {e}")
 
-def auto_reply(channel_id, read_delay, reply_delay, use_google_ai, use_file_reply, language, reply_mode):
+def auto_reply(channel_id, read_delay, reply_delay_min, reply_delay_max, use_google_ai, use_file_reply, language, reply_mode):
     global last_message_id, bot_user_id
 
     headers = {'Authorization': f'{discord_token}'}
@@ -151,6 +151,7 @@ def auto_reply(channel_id, read_delay, reply_delay, use_google_ai, use_file_repl
                         response_text = result['candidates'][0]['content']['parts'][0]['text'] if result else "Maaf, tidak dapat membalas pesan."
                         response_text = humanize_text(response_text)
 
+                        reply_delay = random.randint(reply_delay_min, reply_delay_max)
                         log_message(f"⏳ Waiting {reply_delay} seconds before replying...")
                         time.sleep(reply_delay)
 
@@ -191,10 +192,11 @@ if __name__ == "__main__":
             language_choice = "id"
 
         read_delay = int(os.getenv("READ_DELAY", "10"))
-        reply_delay = int(os.getenv("REPLY_DELAY", "5"))
+        reply_delay_min = int(os.getenv("REPLY_DELAY_MIN", "5"))
+        reply_delay_max = int(os.getenv("REPLY_DELAY_MAX", "10"))
 
         log_message(f"✅ Mode balasan aktif ({reply_mode_input}) dalam bahasa {language_choice.upper()}...")
-        auto_reply(channel_id, read_delay, reply_delay, use_google_ai, use_file_reply, language_choice, reply_mode_input)
+        auto_reply(channel_id, read_delay, reply_delay_min, reply_delay_max, use_google_ai, use_file_reply, language_choice, reply_mode_input)
     else:
         send_interval = int(os.getenv("SEND_INTERVAL", "60"))
         log_message("✅ Mode kirim pesan acak aktif...")
