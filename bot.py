@@ -99,20 +99,7 @@ def generate_reply(prompt, use_google_ai=True, use_file_reply=False, language="i
         return {"candidates": [{"content": {"parts": [{"text": get_random_message()}]}}]}
 
     if use_google_ai:
-        if language == "en":
-            ai_prompt = (
-                f"{prompt}\n\n"
-                "Reply casually, like texting a friend. "
-                "Use chill, simple English. Max 5–7 words. "
-                "Avoid emojis, weird symbols, or formal tone."
-            )
-        else:
-            ai_prompt = (
-                f"{prompt}\n\n"
-                "Balas santai kayak ngobrol sama temen. "
-                "Pakai bahasa gaul, maksimal 5–7 kata. "
-                "Tanpa emoji, simbol aneh, atau bahasa kaku."
-            )
+        ai_prompt = f"{prompt}\n\nBalas santai kayak ngobrol sama temen. Pakai bahasa gaul, maksimal 5–7 kata. Tanpa emoji, simbol aneh, atau bahasa kaku."
 
         url = f'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key={google_api_key}'
         headers = {'Content-Type': 'application/json'}
@@ -177,7 +164,7 @@ def send_message(channel_id, message_text, reply_to=None, reply_mode=True):
     except requests.exceptions.RequestException as e:
         log_message(f"⚠️ Request error: {e}")
 
-def auto_reply(channel_id, read_delay, reply_delay_min, reply_delay_max, use_google_ai, use_file_reply, language, reply_mode):
+def auto_reply(channel_id, read_delay, reply_delay_min, reply_delay_max, pre_reply_delay_min, pre_reply_delay_max, use_google_ai, use_file_reply, language, reply_mode):
     global last_message_id, bot_user_id
 
     headers = {'Authorization': f'{discord_token}'}
@@ -206,7 +193,7 @@ def auto_reply(channel_id, read_delay, reply_delay_min, reply_delay_max, use_goo
                     is_reply_to_bot = referenced_message and referenced_message.get('author', {}).get('id') == bot_user_id
 
                     is_new_message = last_message_id is None or int(message_id) > int(last_message_id)
-                    is_valid = author_id != bot_user_id and message_type != 8
+                    is_valid = author_id != bot_user_id and (message_type != 8 or is_reply_to_bot)
 
                     if is_valid and (is_new_message or is_reply_to_bot):
                         user_message = most_recent_message.get('content', '')
@@ -216,19 +203,20 @@ def auto_reply(channel_id, read_delay, reply_delay_min, reply_delay_max, use_goo
                         if custom_instruction:
                             user_message = f"{custom_instruction}\n\n{user_message}"
 
+                        pre_reply_delay = random.randint(pre_reply_delay_min, pre_reply_delay_max)
+                        if pre_reply_delay > 0:
+                            log_message(f"⏳ Delay sebelum generate balasan: {pre_reply_delay} detik")
+                            time.sleep(pre_reply_delay)
+
                         result = generate_reply(user_message, use_google_ai, use_file_reply, language)
                         response_text = result['candidates'][0]['content']['parts'][0]['text'] if result else "Maaf, tidak dapat membalas pesan."
                         response_text = humanize_text(response_text)
 
                         reply_delay = random.randint(reply_delay_min, reply_delay_max)
-                        log_message(f"⏳ Waiting {reply_delay} seconds before replying...")
+                        log_message(f"⏳ Waiting {reply_delay} seconds before sending reply...")
                         time.sleep(reply_delay)
 
-                        if reply_mode == 'random':
-                            is_reply = random.choice([True, False])
-                        else:
-                            is_reply = reply_mode == 'reply'
-
+                        is_reply = reply_mode == 'reply' or (reply_mode == 'random' and random.choice([True, False]))
                         send_message(channel_id, response_text, reply_to=message_id if is_reply else None, reply_mode=is_reply)
                         last_message_id = message_id
 
@@ -263,15 +251,7 @@ if __name__ == "__main__":
         read_delay = int(os.getenv("READ_DELAY", "10"))
         reply_delay_min = int(os.getenv("REPLY_DELAY_MIN", "5"))
         reply_delay_max = int(os.getenv("REPLY_DELAY_MAX", "10"))
+        pre_reply_delay_min = int(os.getenv("PRE_REPLY_DELAY_MIN", "1"))
+        pre_reply_delay_max = int(os.getenv("PRE_REPLY_DELAY_MAX", "3"))
 
-        log_message(f"✅ Mode balasan aktif ({reply_mode_input}) dalam bahasa {language_choice.upper()}...")
-        auto_reply(channel_id, read_delay, reply_delay_min, reply_delay_max, use_google_ai, use_file_reply, language_choice, reply_mode_input)
-    else:
-        send_interval = int(os.getenv("SEND_INTERVAL", "60"))
-        log_message("✅ Mode kirim pesan acak aktif...")
-
-        while True:
-            message_text = get_random_message()
-            send_message(channel_id, message_text, reply_mode=False)
-            log_message(f"⏳ Waiting {send_interval} seconds before sending the next message...")
-            time.sleep(send_interval)
+        auto_reply(channel_id, read_delay, reply_delay_min, reply_delay_max, pre_reply_delay_min, pre_reply_delay_max, use_google_ai, use_file_reply, language_choice, reply_mode_input)
