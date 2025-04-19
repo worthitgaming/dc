@@ -254,8 +254,12 @@ if __name__ == "__main__":
         pre_reply_delay_min = int(os.getenv("PRE_REPLY_DELAY_MIN", "1"))
         pre_reply_delay_max = int(os.getenv("PRE_REPLY_DELAY_MAX", "3"))
 
-log_message(f"✅ Mode balasan aktif ({reply_mode_input}) dalam bahasa {language_choice.upper()}...")
-        auto_reply(channel_id, read_delay, reply_delay_min, reply_delay_max, use_google_ai, use_file_reply, language_choice, reply_mode_input)
+        log_message(f"✅ Mode balasan aktif ({reply_mode_input}) dalam bahasa {language_choice.upper()}...")
+        auto_reply(
+            channel_id, read_delay, reply_delay_min, reply_delay_max,
+            pre_reply_delay_min, pre_reply_delay_max,
+            use_google_ai, use_file_reply, language_choice, reply_mode_input
+        )
     else:
         send_interval = int(os.getenv("SEND_INTERVAL", "60"))
         log_message("✅ Mode kirim pesan acak aktif...")
