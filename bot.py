@@ -203,29 +203,28 @@ def auto_reply(channel_id, read_delay, reply_delay_min, reply_delay_max, use_goo
                     author_id = most_recent_message.get('author', {}).get('id')
                     message_type = most_recent_message.get('type', '')
 
+                    referenced_message = most_recent_message.get('referenced_message')
+                    is_reply_to_bot = referenced_message and referenced_message.get('author', {}).get('id') == bot_user_id
+
                     if (last_message_id is None or int(message_id) > int(last_message_id)) and author_id != bot_user_id and message_type != 8:
-                        user_message = most_recent_message.get('content', '')
-                        log_message(f"💬 Received message: {user_message}")
+                        if is_reply_to_bot or reply_mode == "reply" or (reply_mode == "random" and random.choice([True, False])):
+                            user_message = most_recent_message.get('content', '')
+                            log_message(f"💬 Received message: {user_message}")
 
-                        custom_instruction = custom_user_input_filter(user_message)
-                        if custom_instruction:
-                            user_message = f"{custom_instruction}\n\n{user_message}"
+                            custom_instruction = custom_user_input_filter(user_message)
+                            if custom_instruction:
+                                user_message = f"{custom_instruction}\n\n{user_message}"
 
-                        result = generate_reply(user_message, use_google_ai, use_file_reply, language)
-                        response_text = result['candidates'][0]['content']['parts'][0]['text'] if result else "Maaf, tidak dapat membalas pesan."
-                        response_text = humanize_text(response_text)
+                            result = generate_reply(user_message, use_google_ai, use_file_reply, language)
+                            response_text = result['candidates'][0]['content']['parts'][0]['text'] if result else "Maaf, tidak dapat membalas pesan."
+                            response_text = humanize_text(response_text)
 
-                        reply_delay = random.randint(reply_delay_min, reply_delay_max)
-                        log_message(f"⏳ Waiting {reply_delay} seconds before replying...")
-                        time.sleep(reply_delay)
+                            reply_delay = random.randint(reply_delay_min, reply_delay_max)
+                            log_message(f"⏳ Waiting {reply_delay} seconds before replying...")
+                            time.sleep(reply_delay)
 
-                        if reply_mode == 'random':
-                            is_reply = random.choice([True, False])
-                        else:
-                            is_reply = reply_mode == 'reply'
-
-                        send_message(channel_id, response_text, reply_to=message_id if is_reply else None, reply_mode=is_reply)
-                        last_message_id = message_id
+                            send_message(channel_id, response_text, reply_to=message_id, reply_mode=True)
+                            last_message_id = message_id
 
             log_message(f"⏳ Waiting {read_delay} seconds before checking for new messages...")
             time.sleep(read_delay)
