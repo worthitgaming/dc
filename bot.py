@@ -18,6 +18,54 @@ last_ai_response = None
 def log_message(message):
     print(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - {message}")
 
+def apply_informal_style(text):
+    informal_map = {
+        "yes": ["yeah", "yep", "yup", "sure", "definitely"],
+        "no": ["nah", "nope", "not really"],
+        "do not": ["don't"],
+        "does not": ["doesn't"],
+        "did not": ["didn't"],
+        "cannot": ["can't"],
+        "I am": ["I'm", "im"],
+        "you are": ["you're", "ur"],
+        "they are": ["they're", "they r"],
+        "we are": ["we're", "we r"],
+        "I have": ["I've", "ive"],
+        "you have": ["you've", "uve"],
+        "I will": ["I'll", "i'll"],
+        "you will": ["you'll", "ull"],
+        "really": ["super", "totally", "hella", "mad"],
+        "very": ["so", "crazy", "mad", "ultra"],
+        "want to": ["wanna"],
+        "going to": ["gonna"],
+        "got to": ["gotta"],
+        "let me": ["lemme"],
+        "give me": ["gimme"],
+        "kind of": ["kinda"],
+        "because": ["cuz", "cause"],
+        "are not": ["aren't"],
+        "is not": ["isn't"],
+        "it is": ["it's", "tis"],
+        "what is": ["what's"],
+        "that is": ["that's"],
+        "there is": ["there's"],
+        "have to": ["hafta"],
+        "need to": ["needa", "gotta"],
+        "should have": ["shoulda"],
+        "would have": ["woulda"],
+        "could have": ["coulda"],
+        "I do not know": ["idk"],
+        "be right back": ["brb"],
+        "laughing out loud": ["lol"]
+    }
+
+    for formal, informal_options in informal_map.items():
+        if formal.lower() in text.lower():
+            chosen = random.choice(informal_options)
+            text = text.replace(formal, chosen).replace(formal.title(), chosen)
+
+    return text
+
 def humanize_text(text):
     if text and text[-1] in ['.', '!', '?']:
         text = text[:-1]
@@ -29,7 +77,8 @@ def humanize_text(text):
             text = text[:idx] + text[idx+1] + text[idx] + text[idx+2:]
     if random.random() < 0.3:
         text = text.lower()
-    return text
+
+    return apply_informal_style(text)
 
 def generate_reply(prompt, use_google_ai=True, use_file_reply=False, language="id"):
     global last_ai_response
