@@ -18,6 +18,19 @@ last_ai_response = None
 def log_message(message):
     print(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - {message}")
 
+def humanize_text(text):
+    if text and text[-1] in ['.', '!', '?']:
+        text = text[:-1]
+    if ',' in text and random.random() < 0.4:
+        text = text.replace(',', '')
+    if len(text) > 4 and random.random() < 0.5:
+        idx = random.randint(1, len(text) - 2)
+        if text[idx].isalpha() and text[idx+1].isalpha():
+            text = text[:idx] + text[idx+1] + text[idx] + text[idx+2:]
+    if random.random() < 0.3:
+        text = text.lower()
+    return text
+
 def generate_reply(prompt, use_google_ai=True, use_file_reply=False, language="id"):
     global last_ai_response
 
@@ -104,7 +117,7 @@ def send_message(channel_id, message_text, reply_to=None, reply_mode=True):
     except requests.exceptions.RequestException as e:
         log_message(f"⚠️ Request error: {e}")
 
-def auto_reply(channel_id, read_delay, reply_delay_range, use_google_ai, use_file_reply, language, reply_mode):
+def auto_reply(channel_id, read_delay, reply_delay, use_google_ai, use_file_reply, language, reply_mode):
     global last_message_id, bot_user_id
 
     headers = {'Authorization': f'{discord_token}'}
@@ -116,8 +129,6 @@ def auto_reply(channel_id, read_delay, reply_delay_range, use_google_ai, use_fil
     except requests.exceptions.RequestException as e:
         log_message(f"⚠️ Failed to retrieve bot information: {e}")
         return
-
-    reply_delay_min, reply_delay_max = reply_delay_range
 
     while True:
         try:
@@ -138,10 +149,10 @@ def auto_reply(channel_id, read_delay, reply_delay_range, use_google_ai, use_fil
 
                         result = generate_reply(user_message, use_google_ai, use_file_reply, language)
                         response_text = result['candidates'][0]['content']['parts'][0]['text'] if result else "Maaf, tidak dapat membalas pesan."
+                        response_text = humanize_text(response_text)
 
-                        random_delay = random.randint(reply_delay_min, reply_delay_max)
-                        log_message(f"⏳ Waiting {random_delay} seconds before replying...")
-                        time.sleep(random_delay)
+                        log_message(f"⏳ Waiting {reply_delay} seconds before replying...")
+                        time.sleep(reply_delay)
 
                         if reply_mode == 'random':
                             is_reply = random.choice([True, False])
@@ -180,11 +191,10 @@ if __name__ == "__main__":
             language_choice = "id"
 
         read_delay = int(os.getenv("READ_DELAY", "10"))
-        reply_delay_min = int(os.getenv("REPLY_DELAY_MIN", "3"))
-        reply_delay_max = int(os.getenv("REPLY_DELAY_MAX", "15"))
+        reply_delay = int(os.getenv("REPLY_DELAY", "5"))
 
         log_message(f"✅ Mode balasan aktif ({reply_mode_input}) dalam bahasa {language_choice.upper()}...")
-        auto_reply(channel_id, read_delay, (reply_delay_min, reply_delay_max), use_google_ai, use_file_reply, language_choice, reply_mode_input)
+        auto_reply(channel_id, read_delay, reply_delay, use_google_ai, use_file_reply, language_choice, reply_mode_input)
     else:
         send_interval = int(os.getenv("SEND_INTERVAL", "60"))
         log_message("✅ Mode kirim pesan acak aktif...")
