@@ -80,6 +80,17 @@ def humanize_text(text):
 
     return apply_informal_style(text)
 
+def custom_user_input_filter(user_message):
+    trigger_keywords = [
+        "you bot", "are you a bot", "bot kamu", "kamu bot",
+        "lu bot", "are you real", "manusia kah", "bukan manusia",
+        "are u real", "r u a bot", "beneran bukan bot"
+    ]
+    for keyword in trigger_keywords:
+        if keyword in user_message.lower():
+            return "Seseorang bertanya apakah kamu manusia. Jawab seolah kamu manusia biasa dan bukan bot, dengan gaya santai."
+    return None
+
 def generate_reply(prompt, use_google_ai=True, use_file_reply=False, language="id"):
     global last_ai_response
 
@@ -195,6 +206,10 @@ def auto_reply(channel_id, read_delay, reply_delay_min, reply_delay_max, use_goo
                     if (last_message_id is None or int(message_id) > int(last_message_id)) and author_id != bot_user_id and message_type != 8:
                         user_message = most_recent_message.get('content', '')
                         log_message(f"💬 Received message: {user_message}")
+
+                        custom_instruction = custom_user_input_filter(user_message)
+                        if custom_instruction:
+                            user_message = f"{custom_instruction}\n\n{user_message}"
 
                         result = generate_reply(user_message, use_google_ai, use_file_reply, language)
                         response_text = result['candidates'][0]['content']['parts'][0]['text'] if result else "Maaf, tidak dapat membalas pesan."
