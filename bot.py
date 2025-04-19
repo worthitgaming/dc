@@ -261,4 +261,5 @@ if __name__ == "__main__":
             language_choice = "id"
 
         read_delay = int(os.getenv("READ_DELAY", "10"))
-        reply_delay_min = int(os.getenv("REPLY_DELAY_MIN",
+        reply_delay_min = int(os.getenv("REPLY_DELAY_MIN", "5"))
+
