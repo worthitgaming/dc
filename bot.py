@@ -15,6 +15,8 @@ last_message_id = None
 bot_user_id = None
 last_ai_response = None
 
+language = os.getenv("LANGUAGE", "en").lower()
+
 def log_message(message):
     print(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - {message}")
 
@@ -192,16 +194,19 @@ def auto_reply(channel_id, read_delay, reply_delay_min, reply_delay_max, pre_rep
                 for msg in messages:
                     message_id = msg.get('id')
                     author_id = msg.get('author', {}).get('id')
-                    message_type = msg.get('type', '')
                     referenced_message = msg.get('referenced_message')
                     is_reply_to_bot = referenced_message and referenced_message.get('author', {}).get('id') == bot_user_id
 
                     is_new_message = last_message_id is None or int(message_id) > int(last_message_id)
-                    is_valid = author_id != bot_user_id and (is_new_message or is_reply_to_bot)
 
-                    if is_valid:
+                    if author_id != bot_user_id and is_reply_to_bot and is_new_message:
                         user_message = msg.get('content', '')
                         log_message(f"💬 Pesan valid diterima: {user_message}")
+
+                        if language == "en":
+                            user_message = f"Please respond in English.\n{user_message}"
+                        elif language == "id":
+                            user_message = f"Tolong balas dalam bahasa Indonesia.\n{user_message}"
 
                         custom_instruction = custom_user_input_filter(user_message)
                         if custom_instruction:
