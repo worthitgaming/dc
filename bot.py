@@ -79,7 +79,6 @@ def humanize_text(text):
             text = text[:idx] + text[idx+1] + text[idx] + text[idx+2:]
     if random.random() < 0.3:
         text = text.lower()
-
     return apply_informal_style(text)
 
 def custom_user_input_filter(user_message):
@@ -191,7 +190,7 @@ def auto_reply(channel_id, read_delay, reply_delay_min, reply_delay_max, pre_rep
 
             if response.status_code == 200:
                 messages = response.json()
-                for msg in messages:
+                for msg in reversed(messages):
                     message_id = msg.get('id')
                     author_id = msg.get('author', {}).get('id')
                     referenced_message = msg.get('referenced_message')
@@ -199,7 +198,10 @@ def auto_reply(channel_id, read_delay, reply_delay_min, reply_delay_max, pre_rep
 
                     is_new_message = last_message_id is None or int(message_id) > int(last_message_id)
 
-                    if author_id != bot_user_id and is_reply_to_bot and is_new_message:
+                    if not is_new_message or author_id == bot_user_id:
+                        continue
+
+                    if author_id != bot_user_id:
                         user_message = msg.get('content', '')
                         log_message(f"💬 Pesan valid diterima: {user_message}")
 
@@ -218,7 +220,7 @@ def auto_reply(channel_id, read_delay, reply_delay_min, reply_delay_max, pre_rep
                             time.sleep(pre_reply_delay)
 
                         result = generate_reply(user_message, use_google_ai, use_file_reply, language)
-                        response_text = result['candidates'][0]['content']['parts'][0]['text'] if result else "Maaf, tidak dapat membalas pesan."
+                        response_text = result['candidates'][0]['content']['parts'][0]['text'] if result else "Sorry, couldn’t reply."
                         response_text = humanize_text(response_text)
 
                         reply_delay = random.randint(reply_delay_min, reply_delay_max)
