@@ -86,7 +86,7 @@ def custom_user_input_filter(user_message):
         "lu bot", "are you real", "manusia kah", "bukan manusia",
         "are u real", "r u a bot", "beneran bukan bot"
     ]
-    for keyword in trigger_keywords:
+    for keyword in user_message.lower().split():
         if keyword in user_message.lower():
             return "Seseorang bertanya apakah kamu manusia. Jawab seolah kamu manusia biasa dan bukan bot, dengan gaya santai."
     return None
@@ -189,20 +189,19 @@ def auto_reply(channel_id, read_delay, reply_delay_min, reply_delay_max, pre_rep
 
             if response.status_code == 200:
                 messages = response.json()
-                if len(messages) > 0:
-                    most_recent_message = messages[0]
-                    message_id = most_recent_message.get('id')
-                    author_id = most_recent_message.get('author', {}).get('id')
-                    message_type = most_recent_message.get('type', '')
-                    referenced_message = most_recent_message.get('referenced_message')
+                for msg in messages:
+                    message_id = msg.get('id')
+                    author_id = msg.get('author', {}).get('id')
+                    message_type = msg.get('type', '')
+                    referenced_message = msg.get('referenced_message')
                     is_reply_to_bot = referenced_message and referenced_message.get('author', {}).get('id') == bot_user_id
 
                     is_new_message = last_message_id is None or int(message_id) > int(last_message_id)
-                    is_valid = author_id != bot_user_id and (message_type != 8 or is_reply_to_bot)
+                    is_valid = author_id != bot_user_id and (is_new_message or is_reply_to_bot)
 
-                    if is_valid and (is_new_message or is_reply_to_bot):
-                        user_message = most_recent_message.get('content', '')
-                        log_message(f"💬 Received message: {user_message}")
+                    if is_valid:
+                        user_message = msg.get('content', '')
+                        log_message(f"💬 Pesan valid diterima: {user_message}")
 
                         custom_instruction = custom_user_input_filter(user_message)
                         if custom_instruction:
@@ -218,12 +217,13 @@ def auto_reply(channel_id, read_delay, reply_delay_min, reply_delay_max, pre_rep
                         response_text = humanize_text(response_text)
 
                         reply_delay = random.randint(reply_delay_min, reply_delay_max)
-                        log_message(f"⏳ Waiting {reply_delay} seconds before sending reply...")
+                        log_message(f"⏳ Menunggu {reply_delay} detik sebelum kirim balasan...")
                         time.sleep(reply_delay)
 
                         is_reply = reply_mode == 'reply' or (reply_mode == 'random' and random.choice([True, False]))
                         send_message(channel_id, response_text, reply_to=message_id if is_reply else None, reply_mode=is_reply)
                         last_message_id = message_id
+                        break
 
             log_message(f"⏳ Waiting {read_delay} seconds before checking for new messages...")
             time.sleep(read_delay)
