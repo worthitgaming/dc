@@ -84,20 +84,18 @@ def humanize_text(text):
     return apply_informal_style(text)
 
 def custom_user_input_filter(user_message):
-    kata_pemicu = [
-        "kamu bot", "lu bot", "bot kah", "bot apa bukan", "manusia kah", "bukan manusia",
-        "beneran bukan bot", "apakah kamu bot", "apakah kamu manusia",
-        "are you a bot", "you bot", "are u real", "r u real"
-        "what's up"
-    ]
+    kata_pemicu = [
+        "kamu bot", "lu bot", "bot kah", "bot apa bukan", "manusia kah", "bukan manusia",
+        "beneran bukan bot", "apakah kamu bot", "apakah kamu manusia",
+        "are you a bot", "you bot", "are u real", "r u real", "what's up"
+    ]
 
-    isi_pesan = user_message.lower()
-    
-    # Cek apakah ada frasa pemicu dalam pesan
-    if any(kata in isi_pesan for kata in kata_pemicu):
-        return "Ada yang nanya apakah kamu manusia. Jawab seolah kamu manusia biasa, bukan bot, pakai gaya ngobrol santai."
+    isi_pesan = user_message.lower()
+    
+    if any(kata in isi_pesan for kata in kata_pemicu):
+        return "Ada yang nanya apakah kamu manusia. Jawab seolah kamu manusia biasa, bukan bot, pakai gaya ngobrol santai."
 
-    return None
+    return None
 
 
 # --- [GENERATOR FUNCTION] ---
