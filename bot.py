@@ -17,12 +17,11 @@ last_ai_response = None
 
 language = os.getenv("LANGUAGE", "en").lower()
 
+# --- [LOGGING FUNCTION] ---
 def log_message(message):
-    try:
-        print(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - {message}")
-    except UnicodeEncodeError:
-        print(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - [Log Unicode Error]")
+    print(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - {message}")
 
+# --- [STYLING & FILTERS] ---
 def apply_informal_style(text):
     informal_map = {
         "yes": ["yeah", "yep", "yup", "sure", "definitely"],
@@ -95,11 +94,12 @@ def custom_user_input_filter(user_message):
             return "Seseorang bertanya apakah kamu manusia. Jawab seolah kamu manusia biasa dan bukan bot, dengan gaya santai."
     return None
 
+# --- [GENERATOR FUNCTION] ---
 def generate_reply(prompt, use_google_ai=True, use_file_reply=False, language="id"):
     global last_ai_response
 
     if use_file_reply:
-        log_message("[INFO] Menggunakan pesan dari file sebagai balasan.")
+        log_message("💬 Menggunakan pesan dari file sebagai balasan.")
         return {"candidates": [{"content": {"parts": [{"text": get_random_message()}]}}]}
 
     if use_google_ai:
@@ -122,21 +122,22 @@ def generate_reply(prompt, use_google_ai=True, use_file_reply=False, language="i
                 response_text = ai_response['candidates'][0]['content']['parts'][0]['text']
 
                 if response_text == last_ai_response:
-                    log_message("[WARN] AI memberikan balasan yang sama, mencoba ulang...")
+                    log_message("⚠️ AI memberikan balasan yang sama, mencoba ulang...")
                     continue
 
                 last_ai_response = response_text
                 return ai_response
 
             except requests.exceptions.RequestException as e:
-                log_message(f"[ERROR] Request failed: {e}")
+                log_message(f"⚠️ Request failed: {e}")
                 return None
 
-        log_message("[WARN] AI terus memberikan balasan yang sama, menggunakan respons terakhir.")
+        log_message("⚠️ AI terus memberikan balasan yang sama, menggunakan respons terakhir.")
         return {"candidates": [{"content": {"parts": [{"text": last_ai_response or 'Sorry, couldn’t reply.'}]}}]}
     else:
         return {"candidates": [{"content": {"parts": [{"text": get_random_message()}]}}]}
 
+# --- [FILE MESSAGE] ---
 def get_random_message():
     try:
         with open('pesan.txt', 'r') as file:
@@ -144,12 +145,13 @@ def get_random_message():
             if lines:
                 return random.choice(lines).strip()
             else:
-                log_message("[WARN] File pesan.txt kosong.")
+                log_message("File pesan.txt kosong.")
                 return "Tidak ada pesan yang tersedia."
     except FileNotFoundError:
-        log_message("[ERROR] File pesan.txt tidak ditemukan.")
+        log_message("File pesan.txt tidak ditemukan.")
         return "File pesan.txt tidak ditemukan."
 
+# --- [SEND FUNCTION] ---
 def send_message(channel_id, message_text, reply_to=None, reply_mode=True):
     headers = {
         'Authorization': f'{discord_token}',
@@ -167,23 +169,25 @@ def send_message(channel_id, message_text, reply_to=None, reply_mode=True):
 
         if response.status_code in [200, 201]:
             data = response.json()
-            log_message(f"[OK] Sent message (ID: {data.get('id')}): {message_text}")
+            log_message(f"✅ Sent message (ID: {data.get('id')}): {message_text}")
         else:
-            log_message(f"[WARN] Failed to send message: {response.status_code}")
+            log_message(f"⚠️ Failed to send message: {response.status_code}")
     except requests.exceptions.RequestException as e:
-        log_message(f"[ERROR] Request error: {e}")
+        log_message(f"⚠️ Request error: {e}")
 
+# --- [AUTO REPLY BARU] ---
 def auto_reply(channel_id, read_delay, reply_delay_min, reply_delay_max, pre_reply_delay_min, pre_reply_delay_max, use_google_ai, use_file_reply, language, reply_mode):
     global last_message_id, bot_user_id
 
     headers = {'Authorization': f'{discord_token}'}
+    replied_ids = set()
 
     try:
         bot_info_response = requests.get('https://discord.com/api/v9/users/@me', headers=headers)
         bot_info_response.raise_for_status()
         bot_user_id = bot_info_response.json().get('id')
     except requests.exceptions.RequestException as e:
-        log_message(f"[ERROR] Failed to retrieve bot information: {e}")
+        log_message(f"⚠️ Failed to retrieve bot information: {e}")
         return
 
     while True:
@@ -193,18 +197,31 @@ def auto_reply(channel_id, read_delay, reply_delay_min, reply_delay_max, pre_rep
 
             if response.status_code == 200:
                 messages = response.json()
+                reply_to_bot_msgs = []
+                non_reply_msgs = []
+
                 for msg in reversed(messages):
                     message_id = msg.get('id')
                     author_id = msg.get('author', {}).get('id')
                     referenced_message = msg.get('referenced_message')
                     is_reply_to_bot = referenced_message and referenced_message.get('author', {}).get('id') == bot_user_id
-                    is_new_message = last_message_id is None or int(message_id) > int(last_message_id)
 
-                    if not is_new_message or author_id == bot_user_id:
+                    if author_id == bot_user_id or message_id in replied_ids:
+                        continue
+
+                    if is_reply_to_bot:
+                        reply_to_bot_msgs.append((message_id, msg))
+                    else:
+                        non_reply_msgs.append((message_id, msg))
+
+                prioritized_msgs = reply_to_bot_msgs + non_reply_msgs
+
+                for message_id, msg in prioritized_msgs:
+                    if message_id in replied_ids:
                         continue
 
                     user_message = msg.get('content', '')
-                    log_message(f"[MSG] Pesan valid diterima: {user_message}")
+                    log_message(f"💬 Pesan valid diterima: {user_message}")
 
                     if language == "en":
                         user_message = f"Please respond in English.\n{user_message}"
@@ -217,7 +234,7 @@ def auto_reply(channel_id, read_delay, reply_delay_min, reply_delay_max, pre_rep
 
                     pre_reply_delay = random.randint(pre_reply_delay_min, pre_reply_delay_max)
                     if pre_reply_delay > 0:
-                        log_message(f"[WAIT] Delay sebelum generate balasan: {pre_reply_delay} detik")
+                        log_message(f"⏳ Delay sebelum generate balasan: {pre_reply_delay} detik")
                         time.sleep(pre_reply_delay)
 
                     result = generate_reply(user_message, use_google_ai, use_file_reply, language)
@@ -225,26 +242,29 @@ def auto_reply(channel_id, read_delay, reply_delay_min, reply_delay_max, pre_rep
                     response_text = humanize_text(response_text)
 
                     reply_delay = random.randint(reply_delay_min, reply_delay_max)
-                    log_message(f"[WAIT] Menunggu {reply_delay} detik sebelum kirim balasan...")
+                    log_message(f"⏳ Menunggu {reply_delay} detik sebelum kirim balasan...")
                     time.sleep(reply_delay)
 
                     is_reply = reply_mode == 'reply' or (reply_mode == 'random' and random.choice([True, False]))
                     send_message(channel_id, response_text, reply_to=message_id if is_reply else None, reply_mode=is_reply)
+
+                    replied_ids.add(message_id)
                     last_message_id = message_id
                     break
 
-            log_message(f"[WAIT] Waiting {read_delay} seconds before checking for new messages...")
+            log_message(f"⏳ Waiting {read_delay} seconds before checking for new messages...")
             time.sleep(read_delay)
         except requests.exceptions.RequestException as e:
-            log_message(f"[ERROR] Request error: {e}")
+            log_message(f"⚠️ Request error: {e}")
             time.sleep(read_delay)
 
+# --- [MAIN LOOP] ---
 if __name__ == "__main__":
     use_reply = os.getenv("USE_REPLY", "n").lower() == 'y'
     channel_id = os.getenv("CHANNEL_ID", "")
 
     if not channel_id:
-        log_message("[FATAL] CHANNEL_ID tidak di-set. Exit.")
+        log_message("❌ CHANNEL_ID tidak di-set. Exit.")
         exit()
 
     if use_reply:
@@ -253,12 +273,12 @@ if __name__ == "__main__":
         reply_mode_input = os.getenv("REPLY_MODE", "reply").lower()
 
         if reply_mode_input not in ["reply", "send", "random"]:
-            log_message("[WARN] Mode tidak valid, default ke 'reply'.")
+            log_message("⚠️ Mode tidak valid, default ke 'reply'.")
             reply_mode_input = "reply"
 
         language_choice = os.getenv("LANGUAGE", "id").lower()
         if language_choice not in ["id", "en"]:
-            log_message("[WARN] Bahasa tidak valid, default ke 'id'.")
+            log_message("⚠️ Bahasa tidak valid, default ke 'id'.")
             language_choice = "id"
 
         read_delay = int(os.getenv("READ_DELAY", "10"))
@@ -267,14 +287,14 @@ if __name__ == "__main__":
         pre_reply_delay_min = int(os.getenv("PRE_REPLY_DELAY_MIN", "1"))
         pre_reply_delay_max = int(os.getenv("PRE_REPLY_DELAY_MAX", "3"))
 
-        log_message(f"[OK] Mode balasan aktif ({reply_mode_input}) dalam bahasa {language_choice.upper()}...")
+        log_message(f"✅ Mode balasan aktif ({reply_mode_input}) dalam bahasa {language_choice.upper()}...")
         auto_reply(channel_id, read_delay, reply_delay_min, reply_delay_max, pre_reply_delay_min, pre_reply_delay_max, use_google_ai, use_file_reply, language_choice, reply_mode_input)
     else:
         send_interval = int(os.getenv("SEND_INTERVAL", "60"))
-        log_message("[OK] Mode kirim pesan acak aktif...")
+        log_message("✅ Mode kirim pesan acak aktif...")
 
         while True:
             message_text = get_random_message()
             send_message(channel_id, message_text, reply_mode=False)
-            log_message(f"[WAIT] Waiting {send_interval} seconds before sending the next message...")
+            log_message(f"⏳ Waiting {send_interval} seconds before sending the next message...")
             time.sleep(send_interval)
