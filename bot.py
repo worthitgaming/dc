@@ -88,6 +88,7 @@ def custom_user_input_filter(user_message):
         "kamu bot", "lu bot", "bot kah", "bot apa bukan", "manusia kah", "bukan manusia",
         "beneran bukan bot", "apakah kamu bot", "apakah kamu manusia",
         "are you a bot", "you bot", "are u real", "r u real"
+        "what's up"
     ]
 
     isi_pesan = user_message.lower()
