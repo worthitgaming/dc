@@ -84,15 +84,20 @@ def humanize_text(text):
     return apply_informal_style(text)
 
 def custom_user_input_filter(user_message):
-    trigger_keywords = [
-        "you bot", "are you a bot", "bot kamu", "kamu bot",
-        "lu bot", "are you real", "manusia kah", "bukan manusia",
-        "are u real", "r u a bot", "beneran bukan bot"
+    kata_pemicu = [
+        "kamu bot", "lu bot", "bot kah", "bot apa bukan", "manusia kah", "bukan manusia",
+        "beneran bukan bot", "apakah kamu bot", "apakah kamu manusia",
+        "are you a bot", "you bot", "are u real", "r u real"
     ]
-    for keyword in user_message.lower().split():
-        if keyword in user_message.lower():
-            return "Seseorang bertanya apakah kamu manusia. Jawab seolah kamu manusia biasa dan bukan bot, dengan gaya santai."
+
+    isi_pesan = user_message.lower()
+    
+    # Cek apakah ada frasa pemicu dalam pesan
+    if any(kata in isi_pesan for kata in kata_pemicu):
+        return "Ada yang nanya apakah kamu manusia. Jawab seolah kamu manusia biasa, bukan bot, pakai gaya ngobrol santai."
+
     return None
+
 
 # --- [GENERATOR FUNCTION] ---
 def generate_reply(prompt, use_google_ai=True, use_file_reply=False, language="id"):
