@@ -99,7 +99,12 @@ def generate_reply(prompt, use_google_ai=True, use_file_reply=False, language="i
         return {"candidates": [{"content": {"parts": [{"text": get_random_message()}]}}]}
 
     if use_google_ai:
-        ai_prompt = f"{prompt}\n\nBalas santai kayak ngobrol sama temen. Pakai bahasa gaul, maksimal 5–7 kata. Tanpa emoji, simbol aneh, atau bahasa kaku."
+        if language == "id":
+            style_instruction = "Balas santai kayak ngobrol sama temen. Pakai bahasa gaul, maksimal 5–7 kata. Tanpa emoji, simbol aneh, atau bahasa kaku."
+        else:
+            style_instruction = "Reply casually like chatting with a friend. Use informal tone, max 5–7 words. No emojis, symbols, or stiff language."
+
+        ai_prompt = f"{prompt}\n\n{style_instruction}"
 
         url = f'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key={google_api_key}'
         headers = {'Content-Type': 'application/json'}
@@ -124,7 +129,7 @@ def generate_reply(prompt, use_google_ai=True, use_file_reply=False, language="i
                 return None
 
         log_message("⚠️ AI terus memberikan balasan yang sama, menggunakan respons terakhir.")
-        return {"candidates": [{"content": {"parts": [{"text": last_ai_response or 'Maaf, tidak dapat membalas pesan.'}]}}]}
+        return {"candidates": [{"content": {"parts": [{"text": last_ai_response or 'Sorry, couldn’t reply.'}]}}]}
     else:
         return {"candidates": [{"content": {"parts": [{"text": get_random_message()}]}}]}
 
@@ -255,11 +260,7 @@ if __name__ == "__main__":
         pre_reply_delay_max = int(os.getenv("PRE_REPLY_DELAY_MAX", "3"))
 
         log_message(f"✅ Mode balasan aktif ({reply_mode_input}) dalam bahasa {language_choice.upper()}...")
-        auto_reply(
-            channel_id, read_delay, reply_delay_min, reply_delay_max,
-            pre_reply_delay_min, pre_reply_delay_max,
-            use_google_ai, use_file_reply, language_choice, reply_mode_input
-        )
+        auto_reply(channel_id, read_delay, reply_delay_min, reply_delay_max, pre_reply_delay_min, pre_reply_delay_max, use_google_ai, use_file_reply, language_choice, reply_mode_input)
     else:
         send_interval = int(os.getenv("SEND_INTERVAL", "60"))
         log_message("✅ Mode kirim pesan acak aktif...")
